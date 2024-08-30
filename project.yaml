@@ -1,11 +1,52 @@
-version: "3.0"
+# Here is where we create actions in order to run the project and create outputs
 
+version: '3.0'
+
+# Ignore this`expectation` block. It is required but not used, and will be removed in future versions.
 expectations:
   population_size: 1000
 
+# All actions will be within this actions block
 actions:
+  # generate_dataset - this is the name of this action. We can have many actions, running many files
   generate_dataset:
-    run: ehrql:v1 generate-dataset --output dataset.csv.gz dataset_definition.py
+  # ehrql:v1 - This is the version of ehrql we are running. There are older versions some projects are reliant on using
+  # generate-dataset - This is what we are telling OS to do
+  # analysis/dataset_definition.py - The location of our dataset definition file
+  # --output output/dataset.csv.gz - The location and name of where the output will be stored. Must match what is below
+    run: ehrql:v1 generate-dataset analysis/dataset_definition.py --output output/dataset.csv.gz
     outputs:
+    # highly_senstive: indicates the outputs are potentially highly-disclosive (when working with real data)
       highly_sensitive:
-        dataset: dataset.csv.gz
+        # the location of the output
+        dataset: output/dataset.csv.gz
+
+
+  # generate_chart - name of our new action
+  generate_charts:
+    # Using python to run the create_graph.py file
+    run: python:v2 python analysis/create_graph.py
+    # This will ensure the action only runs once the generate_dataset action has finished
+    needs: [generate_dataset]
+    outputs:
+      # Our output is no longer patient level, so it is less sensitive
+      moderately_sensitive:
+        # You can have multiple outputs here, just name them chart1, chart2 etc
+        histogram: output/age_num_inhalers_meds_histogram.png
+
+
+
+# How to run:
+# You can either choose an action to run, or run all. 
+
+# Run one action: In the command line:
+# opensafely run {name_of_action}
+
+# Run all: In the command line:
+# opensafely run run_all
+# Note: if you have already ran actions, it will refuse to rerun. To bypass this, run:
+# opensafely run run_all -f
+
+# The output is a compressed csv file
+# To decompress it run:
+# opensafely unzip output
